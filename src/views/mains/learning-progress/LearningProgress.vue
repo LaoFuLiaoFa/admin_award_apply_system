@@ -10,50 +10,43 @@
     <div class="dropdown-left">
       <a-dropdown class="left">
         <template #overlay>
-          <a-menu @click="handleMenuClick">
-            <a-menu-item key="1"> 1st menu item </a-menu-item>
-            <a-menu-item key="2">
-              <UserOutlined />
-              2nd menu item
-            </a-menu-item>
-            <a-menu-item key="3">
-              <UserOutlined />
-              3rd item
-            </a-menu-item>
+          <a-menu @click="handleGradeClick">
+            <a-spin :spinning="spinning">
+              <a-menu-item v-for="item in dropdownGrades" :key="item.grade"> {{ item.grade }} </a-menu-item>
+            </a-spin>
           </a-menu>
         </template>
-        <a-button>
-          请选择年级
+        <a-button style="width: 150px">
+          {{ selectedGrade || '请选择年级' }}
+          <DownOutlined />
+        </a-button>
+      </a-dropdown>
+
+      <a-dropdown class="left">
+        <template #overlay>
+          <a-menu @click="handleMajorClick">
+            <a-menu-item v-for="item in dropdownMajors" :key="item.major"> {{ item.major }} </a-menu-item>
+          </a-menu>
+        </template>
+        <a-button style="width: 150px">
+          {{ selectedMajor || '请选择专业' }}
           <DownOutlined />
         </a-button>
       </a-dropdown>
       <a-dropdown class="left">
         <template #overlay>
-          <a-menu @click="handleMenuClick">
-            <a-menu-item key="1"> 1st menu item </a-menu-item>
-            <a-menu-item key="2"> 2nd menu item </a-menu-item>
-            <a-menu-item key="3"> 3rd item </a-menu-item>
+          <a-menu @click="handleAwardClick">
+            <a-menu-item key="学习之星"> 学习之星 </a-menu-item>
+            <a-menu-item key="进步之星"> 进步之星 </a-menu-item>
           </a-menu>
         </template>
-        <a-button>
-          请选择专业
-          <DownOutlined />
-        </a-button>
-      </a-dropdown>
-      <a-dropdown class="left">
-        <template #overlay>
-          <a-menu @click="handleMenuClick">
-            <a-menu-item key="1"> 学习之星 </a-menu-item>
-            <a-menu-item key="2"> 进步之星 </a-menu-item>
-          </a-menu>
-        </template>
-        <a-button>
-          请选择奖项
+        <a-button style="width: 150px">
+          {{ selectedAward || '请选择奖项' }}
           <DownOutlined />
         </a-button>
       </a-dropdown>
       <!-- <SearchOutlined style="font-size: 30px" class="" /> -->
-      <a-button type="primary" shape="circle" :icon="h(SearchOutlined)" />
+      <a-button type="primary" shape="circle" :icon="h(SearchOutlined)" @click="() => getData(selectedGrade, selectedMajor, selectedAward)" />
     </div>
     <div class="dropdown-right">
       <a-dropdown class="right">
@@ -82,128 +75,184 @@
       </a-dropdown>
     </div>
   </div>
-  <a-table :columns="columns" :data-source="data" :pagination="false" class="responsive-table" bordered>
-    <!-- <template #bodyCell="{column, text}"> -->
-    <!-- <template v-if="column.dataIndex === 'name'">
-        <a>{{ text }}</a>
-      </template> -->
-    <!-- </template> -->
-  </a-table>
+  <a-spin tip="正在加载，请稍候..." :spinning="spinning">
+    <a-table :columns="columns" :data-source="filterData" :pagination="false" class="responsive-table" bordered> </a-table>
+  </a-spin>
 </template>
 
 <script setup lang="ts">
-import {h} from 'vue';
+import {h, onMounted, ref} from 'vue';
 import {UserOutlined, DownOutlined, SearchOutlined} from '@ant-design/icons-vue';
-import type {MenuProps} from 'ant-design-vue';
+import {message, type MenuProps} from 'ant-design-vue';
+import {LXRgetgrade, LXRgetmajor, LXRgetlearning} from '@/service/main/learning-progress';
 const handleMenuClick: MenuProps['onClick'] = (e) => {
   console.log('click', e);
 };
 const columns = [
   {
     title: '年级',
-    dataIndex: 'name',
+    dataIndex: 'grade',
     align: 'center',
-    key: 'name'
+    key: 'grade'
   },
   {
     title: '专业',
-    dataIndex: 'age',
+    dataIndex: 'major',
     align: 'center',
-    key: 'age'
+    key: 'major'
   },
   {
     title: '班级',
-    dataIndex: 'address',
+    dataIndex: 'class',
     align: 'center',
-    key: 'address 1'
+    key: 'class'
   },
   {
     title: '学号',
-    dataIndex: 'address',
+    dataIndex: 'stuid',
     align: 'center',
-    key: 'address 2'
+    key: 'stuid'
   },
   {
     title: '姓名',
-    dataIndex: 'address',
+    dataIndex: 'stuname',
     align: 'center',
-    key: 'address 3'
+    key: 'stuname'
   },
   {
     title: '去年总分',
-    dataIndex: 'address',
+    dataIndex: 'oldgrade',
     align: 'center',
-    key: 'address 4'
+    key: 'oldgrade'
   },
   {
     title: '今年总分',
-    dataIndex: 'address',
+    dataIndex: 'newgrade',
     align: 'center',
-    key: 'address 4'
+    key: 'newgrade'
   },
   {
     title: '去年排名',
-    dataIndex: 'address',
+    dataIndex: 'oldorder',
     align: 'center',
-    key: 'address 4'
+    key: 'oldorder'
   },
   {
     title: '今年排名',
-    dataIndex: 'address',
+    dataIndex: 'neworder',
     align: 'center',
-    key: 'address 4'
+    key: 'neworder'
   },
   {
     title: '名次进步百分比',
-    dataIndex: 'address',
+    dataIndex: 'progress',
     align: 'center',
-    key: 'address 4'
+    key: 'progress'
   }
 ];
-const data = [
-  {
-    key: '1',
-    name: 'John Brown',
-    age: 32,
-    address: 'New York No. 1 Lake Park, New York No. 1 Lake Park',
-    tags: ['nice', 'developer']
-  },
-  {
-    key: '2',
-    name: 'Jim Green',
-    age: 42,
-    address: 'London No. 2 Lake Park, London No. 2 Lake Park',
-    tags: ['loser']
-  },
-  {
-    key: '3',
-    name: 'Joe Black',
-    age: 32,
-    address: 'Sidney No. 1 Lake Park, Sidney No. 1 Lake Park',
-    tags: ['cool', 'teacher']
-  },
-  {
-    key: '4',
-    name: 'Joe Black',
-    age: 32,
-    address: 'Sidney No. 1 Lake Park, Sidney No. 1 Lake Park',
-    tags: ['cool', 'teacher']
-  },
-  {
-    key: '5',
-    name: 'Joe Black',
-    age: 32,
-    address: 'Sidney No. 1 Lake Park, Sidney No. 1 Lake Park',
-    tags: ['cool', 'teacher']
-  },
-  {
-    key: '6',
-    name: 'Joe Black',
-    age: 32,
-    address: 'Sidney No. 1 Lake Park, Sidney No. 1 Lake Park',
-    tags: ['cool', 'teacher']
+// 定义加载状态
+const spinning = ref(false);
+const selectedGrade = ref<string | null>(null);
+const selectedMajor = ref<string | null>(null);
+const selectedAward = ref<string | null>(null);
+const handleGradeClick = (e) => {
+  selectedGrade.value = e.key;
+  // console.log(selectedGrade.value);
+};
+const handleMajorClick = (e) => {
+  selectedMajor.value = e.key;
+  // console.log(selectedMajor.value);
+};
+const handleAwardClick = (e) => {
+  // console.log(e);
+  selectedAward.value = e.key;
+  // console.log(selectedAward.value);
+};
+
+interface dropdownGrade {
+  grade: string;
+}
+/**
+ *@description 获取进步之星或学习之星名单。
+ */
+let filterData = ref([]);
+const getData = async (grade, major, state) => {
+  spinning.value = true;
+  const learningResult = await LXRgetlearning(grade, major, state);
+  // console.log(learningResult);
+  if (learningResult.code === 200) {
+    if (Array.isArray(learningResult.data)) {
+      spinning.value = false;
+      filterData.value = learningResult.data;
+      // console.log(learningResult.data);
+    } else {
+      spinning.value = false;
+      filterData.value = []; // 如果不是数组，则清空filterData
+      console.error('数据不是一个有效的数组');
+    }
+    // console.log(learningResult);
+    // console.log(learningResult.data);
+    // spinning.value = false;
+  } else {
+    spinning.value = false;
+    message.warning(`${learningResult.message}`);
   }
-];
+};
+/**
+ *@description 获取年级下拉框
+ */
+const dropdownGrades = ref<dropdownGrade[]>([]);
+const fetchGrades = async () => {
+  try {
+    spinning.value = true;
+    const response = await LXRgetgrade();
+    // console.log(response);
+    if (response.code === 200 && response.data.length > 0) {
+      dropdownGrades.value = response.data;
+      // grades.value = dropdownGrades.value;
+    } else {
+      console.error('接口请求失败:', response.message);
+    }
+  } catch (error) {
+    console.error('发生错误:', error);
+  } finally {
+    spinning.value = false;
+  }
+};
+/**
+ *@description 获取专业下拉框
+ */
+interface dropdownMajor {
+  major: string;
+}
+const dropdownMajors = ref<dropdownMajor[]>([]);
+const fetchMajors = async (grades) => {
+  try {
+    spinning.value = true;
+    // console.log(dropdownGrades.value);
+    // console.log(grades.value);
+    for (const grade of grades) {
+      const majorResult = await LXRgetmajor(grade);
+      // console.log(majorResult);
+      if (majorResult.code === 200 && majorResult.data.length > 0) {
+        dropdownMajors.value.push(...majorResult.data); // 使用 push 将专业信息添加到数组中
+      } else if (majorResult.data.length === 0) {
+        dropdownMajors.value = [{major: '数据为空'}];
+      } else {
+        message.warning(`${majorResult.message}`);
+      }
+    }
+  } catch (error) {
+    console.error('发生错误:', error);
+  } finally {
+    spinning.value = false;
+  }
+};
+// 在组件加载时调用接口获取年级、专业数据
+onMounted(async () => {
+  await fetchGrades();
+  fetchMajors(dropdownGrades.value.map((item) => item.grade));
+});
 </script>
 
 <style scoped>

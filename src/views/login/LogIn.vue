@@ -136,7 +136,7 @@ async function logIn() {
   console.log(loginResult);
   if (loginResult.code == 200) {
     // console.log(loginResult.data)
-    localStorage.setItem('LOGIN_TOKEN', loginResult.data.token);
+    localStorage.setItem('LOGIN_TOKEN', loginResult.data.access_Token);
     router.push('/MatchStar');
     message.success(`${loginResult.msg}`);
   } else {

@@ -29,6 +29,10 @@ import HeaderMenu from '@/components/mains/main-page/HeaderMenu.vue';
 <style scoped>
 .main {
   min-height: 100%;
+  background-image: url('../../assets/images/back9.jpeg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
 }
 .header {
   background: #02509b;
@@ -38,13 +42,12 @@ import HeaderMenu from '@/components/mains/main-page/HeaderMenu.vue';
 }
 
 .main-content {
-  background-image: url('../../assets/images/back9.jpeg');
   display: flex;
   margin-top: 64px;
   flex-direction: column;
   align-items: stretch;
   height: 100%;
-  background-color: #f5f5f5;
+  /* background-color: #f5f5f5; */
   padding: 3% 3% 0 3%;
 }
 
@@ -64,9 +67,9 @@ import HeaderMenu from '@/components/mains/main-page/HeaderMenu.vue';
 }
 
 .footer {
-  background-image: url('../../assets/images/back9.jpeg');
   text-align: center;
   padding: 0 3%;
+  background: transparent;
 }
 
 .footer-divider {
