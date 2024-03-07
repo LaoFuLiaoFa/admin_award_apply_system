@@ -43,7 +43,7 @@
               </div>
               <!-- 状态为2 —— 已审核不通过 -->
               <div v-else-if="action === '2'">
-                <a-button type="dashed" @click="() => getRefusereason(record.id)">查看驳回理由</a-button>
+                <a-button type="dashed" danger @click="() => getRefusereason(record.id)">查看驳回理由</a-button>
               </div>
             </template>
           </template>
