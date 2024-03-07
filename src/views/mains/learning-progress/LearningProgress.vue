@@ -8,7 +8,7 @@
 <template>
   <div class="dropdown-container">
     <div class="dropdown-left">
-      <a-dropdown class="left">
+      <a-dropdown class="left" trigger="hover">
         <template #overlay>
           <a-menu @click="handleMenuClick">
             <a-menu-item key="1"> 1st menu item </a-menu-item>
