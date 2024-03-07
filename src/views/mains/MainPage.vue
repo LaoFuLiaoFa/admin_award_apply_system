@@ -34,10 +34,11 @@ import HeaderMenu from '@/components/mains/main-page/HeaderMenu.vue';
   background-position: center;
   background-repeat: no-repeat;
 }
+
 .header {
   background: #02509b;
   position: fixed;
-  z-index: 1;
+  z-index: 99;
   width: 100%;
 }
 
@@ -47,7 +48,6 @@ import HeaderMenu from '@/components/mains/main-page/HeaderMenu.vue';
   flex-direction: column;
   align-items: stretch;
   height: 100%;
-  /* background-color: #f5f5f5; */
   padding: 3% 3% 0 3%;
 }
 

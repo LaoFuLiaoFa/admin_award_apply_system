@@ -7,87 +7,66 @@
 -->
 <template>
   <div class="dropdown-container">
-    <div class="dropdown-left">
-      <a-dropdown class="left" trigger="hover">
-        <template #overlay>
-          <a-menu @click="handleGradeClick">
-            <a-spin :spinning="spinning">
-              <a-menu-item v-for="item in dropdownGrades" :key="item.grade"> {{ item.grade }} </a-menu-item>
-            </a-spin>
-          </a-menu>
-        </template>
-        <a-button style="width: 150px">
-          {{ selectedGrade || '请选择年级' }}
-          <DownOutlined />
-        </a-button>
-      </a-dropdown>
+    <a-spin tip="正在加载，请稍候..." :spinning="spinning">
+      <a-table :columns="columns" :data-source="filterData" :pagination="false" class="responsive-table" bordered :scroll="{x: 1300}">
+        <!-- <div class="dropdown-left"> -->
+        <template #title>
+          <a-dropdown class="left" trigger="hover">
+            <template #overlay>
+              <a-menu @click="handleGradeClick">
+                <a-spin :spinning="spinning">
+                  <a-menu-item v-for="item in dropdownGrades" :key="item.grade"> {{ item.grade }} </a-menu-item>
+                </a-spin>
+              </a-menu>
+            </template>
+            <a-button style="width: 150px">
+              {{ selectedGrade || '请选择年级' }}
+              <DownOutlined />
+            </a-button>
+          </a-dropdown>
 
-      <a-dropdown class="left">
-        <template #overlay>
-          <a-menu @click="handleMajorClick">
-            <a-menu-item v-for="item in dropdownMajors" :key="item.major"> {{ item.major }} </a-menu-item>
-          </a-menu>
+          <a-dropdown class="left" trigger="hover">
+            <template #overlay>
+              <a-menu @click="handleMajorClick">
+                <a-menu-item v-for="item in dropdownMajors" :key="item.major"> {{ item.major }} </a-menu-item>
+              </a-menu>
+            </template>
+            <a-button style="width: 150px">
+              {{ selectedMajor || '请选择专业' }}
+              <DownOutlined />
+            </a-button>
+          </a-dropdown>
+
+          <a-dropdown class="left" trigger="hover">
+            <template #overlay>
+              <a-menu @click="handleAwardClick">
+                <a-menu-item key="学习之星"> 学习之星 </a-menu-item>
+                <a-menu-item key="进步之星"> 进步之星 </a-menu-item>
+              </a-menu>
+            </template>
+            <a-button style="width: 150px">
+              {{ selectedAward || '请选择奖项' }}
+              <DownOutlined />
+            </a-button>
+          </a-dropdown>
+          <a-button type="primary" shape="circle" :icon="h(SearchOutlined)" @click="() => getData(selectedGrade, selectedMajor, selectedAward)" />
+          <a-button :icon="h(CloudDownloadOutlined)" type="primary" shape="round" @click="exportlistlearning" class="right-button" size="large" :disabled="disableExportLearning"
+            >导出学习之星名单</a-button
+          >
+          <a-button :icon="h(CloudDownloadOutlined)" type="primary" shape="round" @click="exportlistlearning" class="right-button" size="large" :disabled="disableExportProgress"
+            >导出进步之星名单</a-button
+          >
         </template>
-        <a-button style="width: 150px">
-          {{ selectedMajor || '请选择专业' }}
-          <DownOutlined />
-        </a-button>
-      </a-dropdown>
-      <a-dropdown class="left">
-        <template #overlay>
-          <a-menu @click="handleAwardClick">
-            <a-menu-item key="学习之星"> 学习之星 </a-menu-item>
-            <a-menu-item key="进步之星"> 进步之星 </a-menu-item>
-          </a-menu>
-        </template>
-        <a-button style="width: 150px">
-          {{ selectedAward || '请选择奖项' }}
-          <DownOutlined />
-        </a-button>
-      </a-dropdown>
-      <!-- <SearchOutlined style="font-size: 30px" class="" /> -->
-      <a-button type="primary" shape="circle" :icon="h(SearchOutlined)" @click="() => getData(selectedGrade, selectedMajor, selectedAward)" />
-    </div>
-    <div class="dropdown-right">
-      <a-dropdown class="right">
-        <template #overlay>
-          <a-menu @click="handleMenuClick">
-            <a-menu-item key="1"> 名单 </a-menu-item>
-            <a-menu-item key="2"> 证书 </a-menu-item>
-          </a-menu>
-        </template>
-        <a-button>
-          导出进步之星
-          <DownOutlined />
-        </a-button>
-      </a-dropdown>
-      <a-dropdown class="right">
-        <template #overlay>
-          <a-menu @click="handleMenuClick">
-            <a-menu-item key="1"> 名单 </a-menu-item>
-            <a-menu-item key="2"> 证书 </a-menu-item>
-          </a-menu>
-        </template>
-        <a-button>
-          导出学习之星
-          <DownOutlined />
-        </a-button>
-      </a-dropdown>
-    </div>
+      </a-table>
+    </a-spin>
   </div>
-  <a-spin tip="正在加载，请稍候..." :spinning="spinning">
-    <a-table :columns="columns" :data-source="filterData" :pagination="false" class="responsive-table" bordered> </a-table>
-  </a-spin>
 </template>
 
 <script setup lang="ts">
-import {h, onMounted, ref} from 'vue';
-import {UserOutlined, DownOutlined, SearchOutlined} from '@ant-design/icons-vue';
+import {h, onMounted, ref, watch} from 'vue';
+import {CloudDownloadOutlined, DownOutlined, SearchOutlined} from '@ant-design/icons-vue';
 import {message, type MenuProps} from 'ant-design-vue';
 import {LXRgetgrade, LXRgetmajor, LXRgetlearning} from '@/service/main/learning-progress';
-const handleMenuClick: MenuProps['onClick'] = (e) => {
-  console.log('click', e);
-};
 const columns = [
   {
     title: '年级',
@@ -163,12 +142,30 @@ const handleMajorClick = (e) => {
   selectedMajor.value = e.key;
   // console.log(selectedMajor.value);
 };
-const handleAwardClick = (e) => {
-  // console.log(e);
-  selectedAward.value = e.key;
+// const handleAwardClick = (e) => {
+//   // console.log(e);
+//   // console.log(selectedAward.value);
+// };
+const handleAwardClick = ({key}) => {
+  selectedAward.value = key;
   // console.log(selectedAward.value);
 };
+const disableExportLearning = ref(false);
+const disableExportProgress = ref(false);
 
+// 监听selectedAward的变化
+watch(selectedAward, (value) => {
+  if (value === '学习之星') {
+    disableExportLearning.value = false;
+    disableExportProgress.value = true;
+  } else if (value === '进步之星') {
+    disableExportLearning.value = true;
+    disableExportProgress.value = false;
+  } else {
+    disableExportLearning.value = false;
+    disableExportProgress.value = false;
+  }
+});
 interface dropdownGrade {
   grade: string;
 }
@@ -248,6 +245,26 @@ const fetchMajors = async (grades) => {
     spinning.value = false;
   }
 };
+/**
+ * @description 导出科研之星的名单
+ */
+const xuexi = ref(false);
+const jinbu = ref(false);
+const exportlistlearning = () => {
+  // window.open('http://47.108.144.113:2000/api/Exportlearning?token=' + localStorage.getItem('LOGIN_TOKEN'));
+  const token = localStorage.getItem('LOGIN_TOKEN');
+  const grade = selectedGrade.value; // 你的年级参数值
+  const major = selectedMajor.value; // 你的专业参数值
+  const state = selectedAward.value; // 你的状态参数值
+  console.log(token);
+  console.log(grade);
+  console.log(major);
+  console.log(state);
+
+  const url = `http://47.108.144.113:2000/api/admin/Exportlearning?token=${token}&grade=${grade}&major=${major}&state=${state}`;
+
+  window.open(url);
+};
 // 在组件加载时调用接口获取年级、专业数据
 onMounted(async () => {
   await fetchGrades();
@@ -256,18 +273,21 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.dropdown-container {
+/* .dropdown-container {
   display: flex;
   flex-direction: column; /* 将布局方向改为垂直列布局 */
-  justify-content: space-between;
+/* justify-content: space-between;
   margin-bottom: 30px;
-}
-
+} */
 .dropdown-left,
 .dropdown-right {
   display: flex;
   flex-direction: column; /* 将左右两列改为垂直列布局 */
   margin-bottom: 10px; /* 添加垂直间距 */
+}
+.right-button {
+  float: right;
+  width: 20%;
 }
 
 @media (min-width: 768px) {
