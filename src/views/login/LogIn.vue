@@ -1,6 +1,6 @@
 <!--
     * @FileDescription: 登录页面。
-    * @Author: 作者信息
+    * @Author: 蒋雯绘
     * @Date: 2024年1月22日
     * @LastEditors: 蒋雯绘
     * @LastEditTime: 2024年1月22日
@@ -28,13 +28,11 @@
             <a-col :span="12">
               <div class="right-content">
                 <div class="right-box">
-                  <div class="change">
-                    <p class="recompose">登录</p>
-                  </div>
+                  <p class="recompose">登录</p>
                   <a-divider style="height: 1px; background-color: #005746" soild />
 
                   <div>
-                    <a-form :model="formState" name="basic" :wrapper-col="{span: 19, offset: 3}" autocomplete="off" @finish="onFinish" @finishFailed="onFinishFailed">
+                    <a-form :model="formState" name="basic" autocomplete="off" class="form">
                       <a-form-item name="useraccount">
                         <a-row>
                           <a-input class="input" v-model:value="formState.useraccount" placeholder="请输入学号" />
@@ -65,9 +63,6 @@ import {reactive} from 'vue';
 import {useRouter} from 'vue-router';
 
 const router = useRouter();
-const state = reactive({
-  checked: true
-});
 
 interface FormState {
   useraccount: string;
@@ -85,14 +80,6 @@ const formState = reactive<FormState>({
   code: ''
 });
 
-const onFinish = (values: any) => {
-  console.log('Success:', values);
-};
-
-const onFinishFailed = (errorInfo: any) => {
-  console.log('Failed:', errorInfo);
-};
-
 /**
  * @description 点击登录按钮。
  * @param null
@@ -102,27 +89,26 @@ async function logIn() {
   // console.log(formState.useraccount)
   // console.log(formState.password)
   const loginResult = await JWHLoginRequest(formState.useraccount, formState.password);
-  console.log(loginResult);
+  // console.log(loginResult);
   if (loginResult.code == 200) {
     // console.log(loginResult.data)
     localStorage.setItem('LOGIN_TOKEN', loginResult.data.access_Token);
     router.push('/MatchStar');
     // 根据judge选择页面登录
-    if(loginResult.data.judge=="学习之星与进步之星"){
+    if (loginResult.data.judge === '学习之星与进步之星') {
       router.push('/LearningProgress');
-    }else if(loginResult.data.judge=="竞赛之星"){
+    } else if (loginResult.data.judge === '竞赛之星') {
+      router.push('/MatchStar');
+    } else if (loginResult.data.judge === '科研之星') {
       router.push('/ResearchStar');
-    }else if(loginResult.data.judge=="科研之星"){
-      router.push('/ResearchStar');
-    }else if(loginResult.data.judge=="双创之星"){
+    } else if (loginResult.data.judge === '双创之星') {
       router.push('/DoubleStar');
-    };
+    }
     message.success(`${loginResult.msg}`);
   } else {
     message.warning(`${loginResult.msg}`);
   }
 }
-
 </script>
 
 <style scoped>

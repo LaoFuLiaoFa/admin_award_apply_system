@@ -27,8 +27,10 @@ import {message} from 'ant-design-vue';
 import router from '@/routers';
 
 function handleExitClick() {
-  message.success('退出系统成功,欢迎您下次登录!');
   router.push('/LogIn');
+  message.success('退出系统成功,欢迎您下次登录!');
+  sessionStorage.clear();
+  localStorage.clear();
 }
 </script>
 

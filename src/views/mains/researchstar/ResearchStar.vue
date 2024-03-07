@@ -6,71 +6,61 @@
     * @LastEditTime: 2024年1月22日
 -->
 <template>
-  <div class="top">
-    <a-input-search v-model:value="inputValue" placeholder="请输入内容" style="width: 200px" @search="sciSearch" />
-    <a-dropdown class="right">
-      <template #overlay>
-        <a-menu>
-          <a-menu-item key="1" @click="exportlistkeyan"> 名单 </a-menu-item>
-          <a-menu-item key="2"> 证书 </a-menu-item>
-        </a-menu>
-      </template>
-      <a-button>
-        导出科研之星
-        <DownOutlined />
-      </a-button>
-    </a-dropdown>
-  </div>
-  <a-spin tip="正在加载，请稍候..." :spinning="spinning">
-    <a-table :columns="columns" :data-source="filteredData" :pagination="false" class="responsive-table" bordered>
-      <template #bodyCell="{column, record}">
-        <template v-if="column.dataIndex === 'url'">
-          <a-button type="link" @click="showUrl(record)">点击查看</a-button>
-        </template>
-        <template v-else-if="column.dataIndex === 'state'">
-          <div v-for="tag in record.state" :key="tag" :style="{color: tag === '1' ? 'green' : tag === '2' ? 'red' : 'black'}">
-            {{ tag === '1' ? '已通过' : tag === '2' ? '未通过' : '未审核' }}
+  <div>
+    <a-spin tip="正在加载，请稍候..." :spinning="spinning">
+      <a-table :columns="columns" :data-source="filteredData" :pagination="false" bordered :scroll="{x: 1300}">
+        <template #title>
+          <div>
+            <a-input-search v-model:value="inputValue" placeholder="请输入内容进行搜索" class="search-input" @search="sciSearch" size="large" />
+            <a-button :icon="h(CloudDownloadOutlined)" type="primary" shape="round" @click="exportlistkeyan" class="right-button" size="large">导出科研之星名单</a-button>
           </div>
         </template>
-        <template v-else-if="column.dataIndex === 'operate'">
-          <span>
-            <template v-for="action in record.state" :key="action">
-              <!-- 状态为0 —— 未审核 -->
-              <div v-if="action === '0'">
-                <!-- 通过 -->
-                <a-button ghost type="primary" @click="() => accept(record.id, record.url)" style="border-color: green; border-radius: 25px; color: #fff; background-color: green">
-                  通 过
-                </a-button>
-                <!-- 未通过 -->
-                <a-button ghost type="primary" @click="showReason(record.id)" danger style="border-radius: 25px; margin-left: 3%"> 未 通 过 </a-button>
-              </div>
-              <!-- 状态为1 —— 已审核通过 -->
-              <div v-else-if="action === '1'">
-                <a-button type="text" style="color: green" @click="showCertificate">查看证书</a-button>
-              </div>
-              <!-- 状态为2 —— 已审核不通过 -->
-              <div v-else-if="action === '2'">
-                <a-button type="text" style="color: red" @click="() => getRefusereason(record.id)">查看驳回理由</a-button>
-              </div>
-            </template>
-          </span>
+        <template #bodyCell="{column, record}">
+          <template v-if="column.dataIndex === 'url'">
+            <a-button type="link" @click="showUrl(record)">点击查看</a-button>
+          </template>
+          <template v-else-if="column.dataIndex === 'state'">
+            <div v-for="tag in record.state" :key="tag" :style="{color: tag === '1' ? 'green' : tag === '2' ? 'red' : 'black'}">
+              {{ tag === '1' ? '已通过' : tag === '2' ? '未通过' : '未审核' }}
+            </div>
+          </template>
+          <template v-else-if="column.dataIndex === 'operate'">
+            <!-- 状态为0 —— 未审核 -->
+            <div v-if="record.state === '0'">
+              <!-- 通过 -->
+              <a-button ghost type="primary" @click="() => accept(record.id, record.url)" style="border-color: green; border-radius: 25px; color: #fff; background-color: green">
+                通 过
+              </a-button>
+              <!-- 未通过 -->
+              <a-button ghost type="primary" @click="showReason(record.id)" danger style="border-radius: 25px; margin-left: 3%"> 未 通 过 </a-button>
+            </div>
+            <!-- 状态为1 —— 已审核通过 -->
+            <div v-else-if="record.state === '1'">
+              <CheckCircleTwoTone :style="{fontSize: '25px'}" />
+            </div>
+            <!-- 状态为2 —— 已审核不通过 -->
+            <div v-else-if="record.state === '2'">
+              <a-button type="dashed" danger @click="() => getRefusereason(record.id)">查看驳回理由</a-button>
+            </div>
+          </template>
         </template>
-      </template>
-    </a-table>
-  </a-spin>
-  <a-modal v-model:open="openReason" @ok="() => refuse(recordId, reasonValue)" @cancel="handleCancel" title="输入不通过理由" ok-text="确定" cancel-text="取消" centered>
-    <a-textarea v-model:value="reasonValue" placeholder="请输入不通过理由"></a-textarea>
-  </a-modal>
-  <a-modal v-model:open="openRefusereason" title="查看详情" :ok-button-props="{disabled: true}" :cancel-button-props="{disabled: true}" centered :footer="null">
-    <p>{{ checkReason }}</p>
-  </a-modal>
+      </a-table>
+    </a-spin>
+    <a-modal v-model:open="openReason" @ok="() => refuse(recordId, reasonValue)" @cancel="handleCancel" title="请输入不通过理由：" ok-text="确定" cancel-text="取消" centered>
+      <a-textarea v-model:value="reasonValue" :rows="4"></a-textarea>
+    </a-modal>
+    <a-modal v-model:open="openRefusereason" title="驳回理由：" :ok-button-props="{disabled: true}" :cancel-button-props="{disabled: true}" centered :footer="null">
+      <p>{{ checkReason }}</p>
+    </a-modal>
+  </div>
 </template>
 
 <script setup lang="ts">
-import {ref} from 'vue';
-import {DownOutlined} from '@ant-design/icons-vue';
-import {message, type MenuProps} from 'ant-design-vue';
-import {LXRgetsci, LXRscisearch, LXRexportlistSic, LXRacceptSic, LXRrefuseSic, LXRgetreasonSic} from '@/service/main/research-star';
+import {ref, h} from 'vue';
+import {message} from 'ant-design-vue';
+import {LXRgetsci, LXRscisearch, LXRacceptSic, LXRrefuseSic, LXRgetreasonSic} from '@/service/main/research-star';
+import {CheckCircleTwoTone, CloudDownloadOutlined} from '@ant-design/icons-vue';
+
 const inputValue = ref<string>('');
 // 定义加载状态
 const spinning = ref<boolean>(true);
@@ -145,6 +135,8 @@ const columns = [
     title: '操作',
     dataIndex: 'operate',
     align: 'center',
+    fixed: 'right',
+    width: 200,
     key: 'operate'
   }
 ];
@@ -279,22 +271,12 @@ const showCertificate = () => {
 </script>
 
 <style scoped>
-.top {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 30px;
+.search-input {
+  width: 30%;
 }
-@media (max-width: 768px) {
-  .top {
-    flex-direction: column;
-  }
-  .right {
-    width: 200px;
-    margin-top: 5px;
-  }
-  .responsive-table {
-    max-width: 100%;
-    overflow-x: auto;
-  }
+
+.right-button {
+  float: right;
+  width: 30%;
 }
 </style>
