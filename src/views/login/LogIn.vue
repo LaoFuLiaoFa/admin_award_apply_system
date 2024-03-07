@@ -105,8 +105,8 @@ async function logIn() {
   console.log(loginResult);
   if (loginResult.code == 200) {
     // console.log(loginResult.data)
-    // console.log(loginResult.data.judge)
-    localStorage.setItem('LOGIN_TOKEN', loginResult.data.token);
+    localStorage.setItem('LOGIN_TOKEN', loginResult.data.access_Token);
+    router.push('/MatchStar');
     // 根据judge选择页面登录
     if(loginResult.data.judge=="学习之星与进步之星"){
       router.push('/LearningProgress');

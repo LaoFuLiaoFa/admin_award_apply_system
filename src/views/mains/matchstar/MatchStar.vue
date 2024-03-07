@@ -7,11 +7,11 @@
 -->
 <template>
   <div class="top">
-    <a-input-search v-model:value="inputValue" placeholder="请输入内容" style="width: 200px" @search="onSearch" />
+    <a-input-search v-model:value="inputValue" placeholder="请输入内容" style="width: 200px" @search="competitionSearch" />
     <a-dropdown class="right">
       <template #overlay>
-        <a-menu @click="handleMenuClick">
-          <a-menu-item key="1"> 名单 </a-menu-item>
+        <a-menu>
+          <a-menu-item key="1" @click="exportlistjingsai"> 名单 </a-menu-item>
           <a-menu-item key="2"> 证书 </a-menu-item>
         </a-menu>
       </template>
@@ -25,10 +25,7 @@
     <a-table :columns="columns" :data-source="filteredData" :pagination="false" class="responsive-table" bordered>
       <template #bodyCell="{column, record}">
         <template v-if="column.dataIndex === 'url'">
-          <a-button type="link" @click="showUrl">点击查看</a-button>
-          <a-modal v-model:open="openUrl" title="佐证材料" :footer="null" centered>
-            <a>{{ record.url }}</a>
-          </a-modal>
+          <a-button type="link" @click="showUrl(record)">点击查看</a-button>
         </template>
         <template v-if="column.dataIndex === 'state'">
           <div v-for="tag in record.state" :key="tag" :style="{color: tag === '1' ? 'green' : tag === '2' ? 'red' : 'black'}">
@@ -41,9 +38,11 @@
               <!-- 状态为0 —— 未审核 -->
               <div v-if="action === '0'">
                 <!-- 通过 -->
-                <a-button ghost type="primary" style="border-color: green; border-radius: 25px; color: #fff; background-color: green"> 通 过 </a-button>
+                <a-button ghost type="primary" @click="() => accept(record.id, record.url)" style="border-color: green; border-radius: 25px; color: #fff; background-color: green">
+                  通 过
+                </a-button>
                 <!-- 未通过 -->
-                <a-button ghost type="primary" danger style="border-radius: 25px; margin-left: 3%"> 未 通 过 </a-button>
+                <a-button ghost type="primary" @click="showReason(record.id)" danger style="border-radius: 25px; margin-left: 3%"> 未 通 过 </a-button>
               </div>
               <!-- 状态为1 —— 已审核通过 -->
               <div v-else-if="action === '1'">
@@ -51,41 +50,30 @@
               </div>
               <!-- 状态为2 —— 已审核不通过 -->
               <div v-else-if="action === '2'">
-                <a-button type="text" style="color: red" @click="showCertificate">查看驳回理由</a-button>
+                <a-button type="text" style="color: red" @click="() => getRefusereason(record.id)">查看驳回理由</a-button>
               </div>
-              <a-modal v-model:open="openCertificate" title="查看详情" :ok-button-props="{disabled: true}" :cancel-button-props="{disabled: true}">
-                <p>balbala</p>
-              </a-modal>
             </template>
           </span>
         </template>
       </template>
     </a-table>
   </a-spin>
+  <a-modal v-model:open="openReason" @ok="() => refuse(recordId, reasonValue)" @cancel="handleCancel" title="输入不通过理由" ok-text="确定" cancel-text="取消" centered>
+    <a-textarea v-model:value="reasonValue" placeholder="请输入不通过理由"></a-textarea>
+  </a-modal>
+  <a-modal v-model:open="openRefusereason" title="查看详情" :ok-button-props="{disabled: true}" :cancel-button-props="{disabled: true}" centered :footer="null">
+    <p>{{ checkReason }}</p>
+  </a-modal>
 </template>
 
 <script setup lang="ts">
 import {ref} from 'vue';
 import {DownOutlined} from '@ant-design/icons-vue';
 import {message, type MenuProps} from 'ant-design-vue';
-import {LXRgetCompetition} from '@/service/main/match-star';
-
+import {LXRgetCompetition, LXRexportlistJingsai, LXRcompetitionsearch, LXRacceptJingsai, LXRrefuseJingsai, LXRgetreasonJingsai} from '@/service/main/match-star';
 const inputValue = ref<string>('');
 // 定义加载状态
 const spinning = ref<boolean>(true);
-
-type DataType = {
-  grade: string;
-  major: string;
-  class: string;
-  name: string;
-  cname: string;
-  time: string;
-  url: string;
-  state: string[];
-  operate: string[];
-};
-
 /**
  * @description 定义表头。
  */
@@ -154,7 +142,7 @@ let filteredData = ref([]);
  */
 const getData = async () => {
   const loginResult = await LXRgetCompetition();
-  console.log(loginResult);
+  // console.log(loginResult);
   if (loginResult.code) {
     filteredData.value = loginResult.data;
     spinning.value = false;
@@ -163,13 +151,109 @@ const getData = async () => {
   }
 };
 getData();
-
+/**
+ * @description 导出竞赛之星的名单
+ */
+const exportlistjingsai = () => {
+  window.open('http://47.108.144.113:2000/api/admin/exportlistJingsai?token=' + localStorage.getItem('LOGIN_TOKEN'));
+};
+/**
+ * @description 竞赛之星搜索
+ */
+const competitionSearch = async () => {
+  if (inputValue.value) {
+    spinning.value = true;
+    const searchResult = await LXRcompetitionsearch(inputValue.value);
+    // console.log(searchResult);
+    if (searchResult.code === 200) {
+      filteredData.value = searchResult.data;
+      spinning.value = false;
+    } else {
+      message.warning(`${searchResult.message}`);
+    }
+  } else {
+    getData();
+  }
+};
+/**
+ * @description 审批通过竞赛。
+ */
+const accept = async (form_id, awardurl) => {
+  spinning.value = true;
+  const acceptResult = await LXRacceptJingsai(form_id, awardurl);
+  // console.log(acceptResult);
+  spinning.value = false;
+  if (acceptResult.code) {
+    message.success(`${acceptResult.msg}`);
+    getData();
+  } else {
+    message.warning(`${acceptResult.msg}`);
+  }
+};
+/**
+ *@description 审批拒绝竞赛相关
+ */
+const recordId = ref('');
+const openReason = ref<boolean>(false);
+const reasonValue = ref('');
+const showReason = (form_id) => {
+  openReason.value = true;
+  recordId.value = form_id;
+};
+const handleCancel = () => {
+  openReason.value = false;
+  reasonValue.value = '';
+};
+/**
+ *@description 审批拒绝竞赛。
+ */
+const refuse = async (form_id, reason) => {
+  if (reasonValue.value) {
+    openReason.value = false;
+    spinning.value = true;
+    const refuseResult = await LXRrefuseJingsai(form_id, reason);
+    // console.log(form_id);
+    // console.log(reason);
+    // console.log(refuseResult);
+    if (refuseResult.code) {
+      refuseResult.data = reasonValue.value;
+      getData();
+      spinning.value = false;
+      // reasonValue.value = refuseResult.data;
+      // console.log('拒绝理由' + reasonValue.value);
+      message.success(`${refuseResult.msg}`);
+    } else {
+      spinning.value = false;
+      message.warning(`${refuseResult.msg}`);
+    }
+  } else {
+    message.warning('拒绝理由不能为空！');
+  }
+};
+/**
+ *@description 查看驳回理由相关
+ * */
+let checkReason = ref('');
+const openRefusereason = ref<boolean>(false);
+const getRefusereason = async (form_id) => {
+  // console.log('form_id:', form_id);
+  spinning.value = true;
+  const reasonResult = await LXRgetreasonJingsai(form_id);
+  // console.log(reasonResult);
+  if (reasonResult.code) {
+    openRefusereason.value = true;
+    // 存储驳回理由数据
+    checkReason.value = reasonResult.data[0].reason;
+    spinning.value = false;
+  } else {
+    message.warning(`${reasonResult.msg}`);
+  }
+};
 /**
  * @description 佐证材料相关。
  */
-const openUrl = ref<boolean>(false);
-const showUrl = () => {
-  openUrl.value = true;
+const showUrl = (record) => {
+  window.open(record.url, '_blank'); // 在新标签页中打开链接
 };
 
 /**
@@ -180,15 +264,9 @@ const showCertificate = () => {
   openCertificate.value = true;
 };
 
-const onSearch = () => {
-  // filteredData.value = data.filter((item) => {
-  //   const searchString = inputValue.value.toLocaleLowerCase();
-  //   return item.major.includes(searchString) || item.name.includes(searchString) || item.cname.includes(searchString) || item.state.join(', ').includes(searchString);
-  // });
-};
-const handleMenuClick: MenuProps['onClick'] = (e) => {
-  console.log('click', e);
-};
+// const handleMenuClick: MenuProps['onClick'] = (e) => {
+//   console.log('click', e);
+// };
 </script>
 
 <style scoped>

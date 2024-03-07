@@ -7,11 +7,11 @@
 -->
 <template>
   <div class="top">
-    <a-input-search v-model:value="inputValue" placeholder="请输入内容" style="width: 200px" @search="onSearch" />
+    <a-input-search v-model:value="inputValue" placeholder="请输入内容" style="width: 200px" @search="companysearch" />
     <a-dropdown class="right">
       <template #overlay>
-        <a-menu @click="handleMenuClick">
-          <a-menu-item key="1"> 名单 </a-menu-item>
+        <a-menu>
+          <a-menu-item key="1" @click="exportlistShuangc"> 名单 </a-menu-item>
           <a-menu-item key="2"> 证书 </a-menu-item>
         </a-menu>
       </template>
@@ -21,50 +21,61 @@
       </a-button>
     </a-dropdown>
   </div>
-  <a-table :columns="columns" :data-source="filteredData" :pagination="false" class="responsive-table" bordered>
-    <template #bodyCell="{column, record}">
-      <template v-if="column.dataIndex === 'materials'">
-        <a>{{ record.materials }}</a>
+  <a-spin tip="正在加载，请稍候..." :spinning="spinning">
+    <a-table :columns="columns" :data-source="filteredData" :pagination="false" class="responsive-table" bordered>
+      <template #bodyCell="{column, record}">
+        <template v-if="column.dataIndex === 'url'">
+          <a-button type="link" @click="showUrl(record)">点击查看</a-button>
+        </template>
+        <template v-else-if="column.dataIndex === 'state'">
+          <div v-for="tag in record.state" :key="tag" :style="{color: tag === '1' ? 'green' : tag === '2' ? 'red' : 'black'}">
+            {{ tag === '1' ? '已通过' : tag === '2' ? '未通过' : '未审核' }}
+          </div>
+        </template>
+        <template v-else-if="column.dataIndex === 'operate'">
+          <span>
+            <template v-for="action in record.state" :key="action">
+              <!-- 状态为0 —— 未审核 -->
+              <div v-if="action === '0'">
+                <!-- 通过 -->
+                <a-button ghost type="primary" @click="() => accept(record.id, record.url)" style="border-color: green; border-radius: 25px; color: #fff; background-color: green">
+                  通 过
+                </a-button>
+                <!-- 未通过 -->
+                <a-button ghost type="primary" @click="showReason(record.id)" danger style="border-radius: 25px; margin-left: 3%"> 未 通 过 </a-button>
+              </div>
+              <!-- 状态为1 —— 已审核通过 -->
+              <div v-else-if="action === '1'">
+                <a-button type="text" style="color: green" @click="showCertificate">查看证书</a-button>
+              </div>
+              <!-- 状态为2 —— 已审核不通过 -->
+              <div v-else-if="action === '2'">
+                <a-button type="text" style="color: red" @click="() => getRefusereason(record.id)">查看驳回理由</a-button>
+              </div>
+            </template>
+          </span>
+        </template>
       </template>
-      <template v-else-if="column.dataIndex === 'state'">
-        <a v-for="tag in record.state" :key="tag" :style="{color: tag === '已通过' ? 'green' : tag === '未通过' ? 'red' : 'black'}">{{ tag }}</a>
-      </template>
-      <template v-else-if="column.dataIndex === 'operate'">
-        <span>
-          <template v-for="action in record.operate" :key="action">
-            <a v-if="action === '查看证书' || action === '查看驳回理由'" :style="{color: action === '查看证书' ? 'green' : 'red'}">
-              {{ action }}
-            </a>
-            <a-tag v-else :color="action === '通过' ? 'green' : 'red'">
-              {{ action }}
-            </a-tag>
-          </template>
-        </span>
-      </template>
-    </template>
-  </a-table>
+    </a-table>
+  </a-spin>
+  <a-modal v-model:open="openReason" @ok="() => refuse(recordId, reasonValue)" @cancel="handleCancel" title="输入不通过理由" ok-text="确定" cancel-text="取消" centered>
+    <a-textarea v-model:value="reasonValue" placeholder="请输入不通过理由"></a-textarea>
+  </a-modal>
+  <a-modal v-model:open="openRefusereason" title="查看详情" :ok-button-props="{disabled: true}" :cancel-button-props="{disabled: true}" centered :footer="null">
+    <p>{{ checkReason }}</p>
+  </a-modal>
 </template>
 
 <script setup lang="ts">
 import {ref} from 'vue';
 import {DownOutlined} from '@ant-design/icons-vue';
-import type {MenuProps} from 'ant-design-vue';
+import {message, type MenuProps} from 'ant-design-vue';
+import {LXRgetcompany, LXRcompanysearch, LXRexportlistShuangc, LXRacceptShuangc, LXRrefuseShuangc, LXRgetreasonShuangc} from '@/service/main/double-star';
 const inputValue = ref<string>('');
-type DataType = {
-  key: string;
-  grade: string;
-  major: string;
-  class: string;
-  name: string;
-  companyname: string;
-  vp: string;
-  ranking: string;
-  signuptime: string;
-  scale: string;
-  materials: string;
-  state: string[];
-  operate: string[];
-};
+// 定义加载状态
+const spinning = ref<boolean>(true);
+const loading = ref<boolean>(false);
+
 const columns = [
   {
     title: '年级',
@@ -86,9 +97,9 @@ const columns = [
   },
   {
     title: '姓名',
-    dataIndex: 'name',
+    dataIndex: 'stuname',
     align: 'center',
-    key: 'name'
+    key: 'stuname'
   },
   {
     title: '注册公司名称',
@@ -122,9 +133,9 @@ const columns = [
   },
   {
     title: '佐证材料',
-    dataIndex: 'materials',
+    dataIndex: 'url',
     align: 'center',
-    key: 'materials'
+    key: 'url'
   },
   {
     title: '状态',
@@ -139,87 +150,136 @@ const columns = [
     key: 'operate'
   }
 ];
-const data = [
-  {
-    key: '1',
-    grade: '2023级',
-    major: '软件工程',
-    class: '1',
-    name: '李四',
-    companyname: 'Tb',
-    vp: '实体',
-    ranking: '22',
-    signuptime: '2024/1/1',
-    scale: '一般',
-    materials: '点击查看',
-    state: ['未审批'],
-    operate: ['通过', '未通过']
-  },
-  {
-    key: '2',
-    grade: '2023级',
-    major: '软件工程',
-    class: '1',
-    name: '李四',
-    companyname: 'Tb',
-    vp: '实体',
-    ranking: '22',
-    signuptime: '2024/1/1',
-    scale: '一般',
-    materials: '点击查看',
-    state: ['已通过'],
-    operate: ['查看证书']
-  },
-  {
-    key: '3',
-    grade: '2023级',
-    major: '软件工程',
-    class: '1',
-    name: '李四',
-    companyname: 'Tb',
-    vp: '虚体',
-    ranking: '22',
-    signuptime: '2024/1/1',
-    scale: '一般',
-    materials: '点击查看',
-    state: ['未通过'],
-    operate: ['查看驳回理由']
-  },
-  {
-    key: '4',
-    grade: '2023级',
-    major: '软件工程',
-    class: '1',
-    name: '李四',
-    companyname: 'Tb',
-    vp: '实体',
-    ranking: '22',
-    signuptime: '2024/1/1',
-    scale: '一般',
-    materials: '点击查看',
-    state: ['未审批'],
-    operate: ['查看驳回理由']
+/**
+ * @description 佐证材料相关。
+ */
+const showUrl = (record) => {
+  window.open(record.url, '_blank');
+};
+const filteredData = ref([]);
+/**
+ * @description 请求双创之星数据。
+ */
+const getData = async () => {
+  const loginResult = await LXRgetcompany();
+  // console.log(loginResult);
+  if (loginResult.code) {
+    filteredData.value = loginResult.data;
+    spinning.value = false;
+  } else {
+    message.warning(`${loginResult.msg}`);
   }
-];
-const filteredData = ref<Array<DataType>>(data);
-const onSearch = () => {
-  filteredData.value = data.filter((item) => {
-    const searchString = inputValue.value.toLocaleUpperCase();
-    return (
-      item.grade.includes(searchString) ||
-      item.major.includes(searchString) ||
-      item.name.toLowerCase().includes(searchString) ||
-      item.companyname.toLowerCase().includes(searchString) ||
-      item.vp.toLowerCase().includes(searchString) ||
-      item.ranking.toString().includes(searchString) ||
-      item.scale.toLowerCase().includes(searchString) ||
-      item.state.join(', ').toLowerCase().includes(searchString)
-    );
-  });
 };
-const handleMenuClick: MenuProps['onClick'] = (e) => {
-  console.log('click', e);
+getData();
+/**
+ * @description 双创之星搜索
+ */
+const companysearch = async () => {
+  if (inputValue.value) {
+    spinning.value = true;
+    const searchResult = await LXRcompanysearch(inputValue.value);
+    // console.log(searchResult);
+    if (searchResult.code === 200) {
+      spinning.value = false;
+      filteredData.value = searchResult.data;
+    } else {
+      message.warning(`${searchResult.message}`);
+    }
+  } else {
+    getData();
+  }
 };
+/**
+ * @description 导出双创之星的名单
+ */
+const exportlistShuangc = () => {
+  window.open('http://47.108.144.113:2000/api/admin/exportlistShuangc?token=' + localStorage.getItem('LOGIN_TOKEN'));
+};
+/**
+ * @description 审批通过双创。
+ */
+const accept = async (form_id, awardurl) => {
+  spinning.value = true;
+
+  const acceptResult = await LXRacceptShuangc(form_id, awardurl);
+  spinning.value = false;
+
+  // console.log(acceptResult);
+  if (acceptResult.code) {
+    // loading.value = false;
+    message.success(`${acceptResult.msg}`);
+    getData();
+  } else {
+    message.warning(`${acceptResult.msg}`);
+  }
+};
+/**
+ *@description 审批拒绝双创相关
+ */
+const recordId = ref('');
+
+const openReason = ref<boolean>(false);
+const reasonValue = ref('');
+const showReason = (form_id) => {
+  openReason.value = true;
+  recordId.value = form_id;
+};
+const handleCancel = () => {
+  openReason.value = false;
+  reasonValue.value = '';
+};
+/**
+ *@description 审批拒绝双创。
+ */
+const refuse = async (form_id, reason) => {
+  if (reasonValue.value) {
+    openReason.value = false;
+    spinning.value = true;
+    const refuseResult = await LXRrefuseShuangc(form_id, reason);
+    // console.log(refuseResult);
+    if (refuseResult.code) {
+      refuseResult.data = reasonValue.value;
+      getData();
+      spinning.value = false;
+      message.success(`${refuseResult.msg}`);
+    } else {
+      spinning.value = false;
+      message.warning(`${refuseResult.msg}`);
+    }
+  } else {
+    message.warning('拒绝理由不能为空！');
+  }
+};
+/**
+ *@description 查看驳回理由相关
+ * */
+let checkReason = ref('');
+const openRefusereason = ref<boolean>(false);
+const getRefusereason = async (form_id) => {
+  // console.log('form_id:', form_id);
+  spinning.value = true;
+  const reasonResult = await LXRgetreasonShuangc(form_id);
+  // console.log(reasonResult);
+  if (reasonResult.code) {
+    openRefusereason.value = true;
+    // 存储驳回理由数据
+    checkReason.value = reasonResult.data[0].reason;
+    spinning.value = false;
+  } else {
+    spinning.value = false;
+    message.warning(`${reasonResult.msg}`);
+  }
+};
+/**
+ * @description 查看证书相关。
+ */
+const openCertificate = ref<boolean>(false);
+const showCertificate = () => {
+  openCertificate.value = true;
+};
+// const handleMenuClick: MenuProps['onClick'] = (e) => {
+//   console.log('click', e);
+// };
 </script>
 
 <style scoped>
