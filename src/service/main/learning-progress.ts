@@ -45,3 +45,14 @@ export function LXRgetlearning(grade: string, major: string, state: string) {
     params: {grade, major, state}
   });
 }
+/**
+ * @description 导出名单进步之星或学习之星名单。
+ * @param null
+ * @method get
+ */
+export function LXRexportlistlearning(grade: string, major: string, state: string) {
+  return lsjRequest.get({
+    url: '/api/Exportlearning',
+    params: {grade, major, state}
+  });
+}

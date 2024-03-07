@@ -230,6 +230,7 @@ const refuse = async (form_id, reason) => {
       refuseResult.data = reasonValue.value;
       getData();
       spinning.value = false;
+      reasonValue.value = '';
       message.success(`${refuseResult.msg}`);
     } else {
       spinning.value = false;
