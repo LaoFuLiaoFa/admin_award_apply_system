@@ -35,12 +35,12 @@
 
                   <div>
                     <a-form :model="formState" name="basic" :wrapper-col="{span: 19, offset: 3}" autocomplete="off" @finish="onFinish" @finishFailed="onFinishFailed">
-                      <a-form-item name="useraccount" :rules="getAccountValidationRules('学号')">
+                      <a-form-item name="useraccount">
                         <a-row>
                           <a-input class="input" v-model:value="formState.useraccount" placeholder="请输入学号" />
                         </a-row>
                       </a-form-item>
-                      <a-form-item name="password" :rules="getPasswordValidationRules('密码')">
+                      <a-form-item name="password">
                         <a-row>
                           <a-input-password class="input1" v-model:value="formState.password" placeholder="请输入密码" />
                         </a-row>
@@ -56,14 +56,6 @@
       </a-layout>
     </div>
   </a-config-provider>
-
-  <div>
-    <a-button type="primary" ghost @click="logIn">登录</a-button>
-    <a-button type="primary" ghost @click="learningProgress">学习之星与进步之星</a-button>
-    <a-button type="primary" ghost @click="matchStar">竞赛之星</a-button>
-    <a-button type="primary" ghost @click="researchStar">科研之星</a-button>
-    <a-button type="primary" ghost @click="doubleStar">双创之星</a-button>
-  </div>
 </template>
 
 <script setup lang="ts">
@@ -93,29 +85,6 @@ const formState = reactive<FormState>({
   code: ''
 });
 
-//表单验证
-const getAccountValidationRules = (fieldName: string) => [
-  {
-    required: true,
-    message: `${fieldName}不能为空!`
-  },
-  {
-    pattern: /^\d{11}$/,
-    message: '请输入有效学号'
-  }
-];
-
-const getPasswordValidationRules = (fieldName: string) => [
-  {
-    required: true,
-    message: `${fieldName}不能为空!`
-  },
-  {
-    pattern: /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/,
-    message: '必须是8位以上包含字母和数字的密码'
-  }
-];
-
 const onFinish = (values: any) => {
   console.log('Success:', values);
 };
@@ -138,27 +107,22 @@ async function logIn() {
     // console.log(loginResult.data)
     localStorage.setItem('LOGIN_TOKEN', loginResult.data.access_Token);
     router.push('/MatchStar');
+    // 根据judge选择页面登录
+    if(loginResult.data.judge=="学习之星与进步之星"){
+      router.push('/LearningProgress');
+    }else if(loginResult.data.judge=="竞赛之星"){
+      router.push('/ResearchStar');
+    }else if(loginResult.data.judge=="科研之星"){
+      router.push('/ResearchStar');
+    }else if(loginResult.data.judge=="双创之星"){
+      router.push('/DoubleStar');
+    };
     message.success(`${loginResult.msg}`);
   } else {
     message.warning(`${loginResult.msg}`);
   }
 }
 
-function doubleStar() {
-  router.push('/DoubleStar');
-}
-
-function learningProgress() {
-  router.push('/LearningProgress');
-}
-
-function matchStar() {
-  router.push('/MatchStar');
-}
-
-function researchStar() {
-  router.push('/ResearchStar');
-}
 </script>
 
 <style scoped>
