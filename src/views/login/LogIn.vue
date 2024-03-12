@@ -35,7 +35,7 @@
                     <a-form :model="formState" name="basic" autocomplete="off" class="form">
                       <a-form-item name="useraccount">
                         <a-row>
-                          <a-input class="input" v-model:value="formState.useraccount" placeholder="请输入学号" />
+                          <a-input class="input" v-model:value="formState.useraccount" placeholder="请输入教师账号" />
                         </a-row>
                       </a-form-item>
                       <a-form-item name="password">
